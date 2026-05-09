@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar, Footer, Avatar } from "@/components/shared";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -10,111 +12,261 @@ import {
   Swords,
   BarChart2,
   Users,
-  Shield,
   LogOut,
   Edit2,
+  RefreshCw,
+  AlertTriangle,
+  Gamepad2,
 } from "lucide-react";
-import { useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/hooks/useUser";
+import type { Profile } from "@/types";
+
+interface LeaderboardEntry {
+  id: string;
+  game: string;
+  points: number;
+  wins: number;
+  losses: number;
+  tournaments_played: number;
+  best_placement: number | null;
+}
+
+interface TeamMembership {
+  teams: {
+    id: string;
+    name: string;
+    tag: string | null;
+    primary_game: string;
+  };
+  role: string;
+  joined_at: string;
+}
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { user, profile: authProfile, loading: authLoading } = useUser();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const profile = {
-    name: "Pro_Legend",
-    title: "Competitive Player",
-    rank: 1,
-    team: "Eternal Knights",
-    totalEarnings: "$125,000",
-    winRate: "82%",
-    joinDate: "January 2024",
-    avatar: "PL",
-  };
+  const fetchProfileData = useCallback(async (uid: string) => {
+    const supabase = createSupabaseBrowserClient();
+    setLoadingData(true);
+    setError("");
+
+    try {
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id,username,full_name,avatar_url,bio,role")
+        .eq("id", uid)
+        .single();
+
+      if (profileError) throw new Error(profileError.message);
+      setProfile(profileData);
+      setEditName(profileData?.full_name ?? "");
+      setEditBio(profileData?.bio ?? "");
+
+      // Fetch leaderboard stats
+      const { data: lbData } = await supabase
+        .from("leaderboard_entries")
+        .select("id,game,points,wins,losses,tournaments_played,best_placement")
+        .eq("user_id", uid)
+        .order("points", { ascending: false });
+
+      setLeaderboard(lbData ?? []);
+
+      // Fetch team memberships
+      const { data: memberData } = await supabase
+        .from("team_members")
+        .select("role,joined_at,teams(id,name,tag,primary_game)")
+        .eq("user_id", uid);
+
+      setTeamMemberships((memberData as unknown as TeamMembership[]) ?? []);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load profile data.");
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?next=/profile");
+      return;
+    }
+    if (user) {
+      fetchProfileData(user.id);
+    }
+  }, [user, authLoading, fetchProfileData, router]);
+
+  async function handleSaveProfile() {
+    if (!user) return;
+    setSaving(true);
+    const supabase = createSupabaseBrowserClient();
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ full_name: editName.trim(), bio: editBio.trim() })
+      .eq("id", user.id);
+
+    if (!updateError) {
+      setProfile((prev) => prev ? { ...prev, full_name: editName.trim(), bio: editBio.trim() } : prev);
+      setIsEditing(false);
+    }
+    setSaving(false);
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  const displayName =
+    profile?.username ?? profile?.full_name ?? user?.email?.split("@")[0] ?? "Player";
+
+  const totalWins = leaderboard.reduce((s, e) => s + e.wins, 0);
+  const totalLosses = leaderboard.reduce((s, e) => s + e.losses, 0);
+  const totalPlayed = leaderboard.reduce((s, e) => s + e.tournaments_played, 0);
+  const totalPoints = leaderboard.reduce((s, e) => s + e.points, 0);
+  const winRate = totalWins + totalLosses > 0
+    ? Math.round((totalWins / (totalWins + totalLosses)) * 100)
+    : 0;
+
+  const joinDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "—";
 
   const stats = [
-    { label: "Matches Played", value: "156", icon: Swords },
-    { label: "Total Wins", value: "128", icon: Trophy },
-    { label: "Tournaments", value: "24", icon: Users },
-    { label: "Best Placement", value: "1st", icon: BarChart2 },
+    { label: "Total Wins", value: String(totalWins), icon: Trophy },
+    { label: "Tournaments", value: String(totalPlayed), icon: Users },
+    { label: "Win Rate", value: `${winRate}%`, icon: BarChart2 },
+    { label: "Points", value: totalPoints.toLocaleString(), icon: Swords },
   ];
 
-  const achievements = [
-    { title: "Champion", description: "Won 5 tournaments" },
-    { title: "Legendary", description: "Reached rank 1" },
-    { title: "Team Leader", description: "Led 3 teams to victory" },
-    { title: "Consistent", description: "Maintained 75%+ win rate" },
-    { title: "Rise Up", description: "Climbed 50 ranks" },
-    { title: "Showdown", description: "Won 10 consecutive matches" },
-  ];
+  if (authLoading || (user && loadingData)) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 px-6 py-12">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Skeleton header */}
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 rounded-full skeleton" />
+              <div className="space-y-2">
+                <div className="w-40 h-6 skeleton rounded" />
+                <div className="w-24 h-4 skeleton rounded" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-28 skeleton rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
-  const matchHistory = [
-    {
-      id: 1,
-      opponent: "Phoenix Rising",
-      tournament: "Valorant Cup #1",
-      result: "WON",
-      score: "2-1",
-      date: "2026-05-15",
-    },
-    {
-      id: 2,
-      opponent: "Dragon Force",
-      tournament: "Valorant Cup #1",
-      result: "WON",
-      score: "2-0",
-      date: "2026-05-14",
-    },
-    {
-      id: 3,
-      opponent: "Void Legends",
-      tournament: "Valorant Cup #1",
-      result: "LOST",
-      score: "1-2",
-      date: "2026-05-13",
-    },
-    {
-      id: 4,
-      opponent: "Cosmic Legends",
-      tournament: "Spring Split",
-      result: "WON",
-      score: "2-0",
-      date: "2026-05-10",
-    },
-  ];
-
-  const teams = [
-    { name: "Eternal Knights", role: "Captain", joinDate: "Jan 2024" },
-    { name: "Fire Masters", role: "Member", joinDate: "Mar 2024" },
-  ];
+  if (error) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center py-24 px-6">
+          <div className="text-center">
+            <AlertTriangle size={48} className="text-status-cancelled mx-auto mb-4" />
+            <h2 className="text-h2 font-display font-bold mb-2">Something went wrong</h2>
+            <p className="text-text-secondary mb-6">{error}</p>
+            <Button onClick={() => user && fetchProfileData(user.id)}>
+              <RefreshCw size={16} /> Retry
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
       <main className="flex-1">
         {/* Profile Header */}
-        <section className="px-6 py-12 border-b border-border bg-background-surface/50">
-          <div className="max-w-7xl mx-auto">
+        <section className="px-6 py-12 border-b border-border bg-background-surface/50 relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl opacity-30" />
+          </div>
+          <div className="max-w-7xl mx-auto relative">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
               <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <Avatar name={profile.name} size="lg" />
+                <Avatar
+                  name={displayName}
+                  src={profile?.avatar_url ?? undefined}
+                  size="lg"
+                  online
+                />
                 <div>
-                  <h1 className="text-h1 font-display font-bold mb-1">
-                    {profile.name}
-                  </h1>
-                  <p className="text-text-secondary mb-3">{profile.title}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>Rank #{profile.rank}</Badge>
-                    <Badge variant="gold">{profile.team}</Badge>
+                  {isEditing ? (
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="input-nxa text-xl font-bold font-display mb-2 w-64"
+                      placeholder="Display name"
+                    />
+                  ) : (
+                    <h1 className="text-h1 font-display font-bold mb-1">{displayName}</h1>
+                  )}
+                  {isEditing ? (
+                    <textarea
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                      className="input-nxa text-sm resize-none w-64 h-16 pt-2"
+                      placeholder="Tell us about yourself..."
+                    />
+                  ) : (
+                    <p className="text-text-secondary mb-3">
+                      {profile?.bio || "No bio yet."}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge>{profile?.role ?? "player"}</Badge>
+                    {leaderboard[0] && (
+                      <Badge variant="gold">
+                        <Gamepad2 size={12} /> {leaderboard[0].game}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setIsEditing(!isEditing)}>
-                  <Edit2 size={16} />
-                  Edit Profile
-                </Button>
-                <Button variant="secondary">
-                  <Settings size={16} />
-                  Settings
+              <div className="flex gap-2 flex-wrap">
+                {isEditing ? (
+                  <>
+                    <Button onClick={handleSaveProfile} disabled={saving}>
+                      {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button variant="secondary" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                    <Edit2 size={16} /> Edit Profile
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={handleSignOut} disabled={signingOut}>
+                  <LogOut size={16} /> {signingOut ? "Signing out..." : "Sign Out"}
                 </Button>
               </div>
             </div>
@@ -122,30 +274,28 @@ export default function ProfilePage() {
             {/* Key Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
               <div>
-                <p className="text-text-secondary text-sm mb-1">Total Earnings</p>
+                <p className="text-text-secondary text-sm mb-1">Points</p>
                 <p className="text-h3 font-display font-bold text-accent-gold">
-                  {profile.totalEarnings}
+                  {totalPoints.toLocaleString()}
                 </p>
               </div>
               <div>
                 <p className="text-text-secondary text-sm mb-1">Win Rate</p>
-                <p className="text-h3 font-display font-bold text-primary">
-                  {profile.winRate}
-                </p>
+                <p className="text-h3 font-display font-bold text-primary">{winRate}%</p>
               </div>
               <div>
-                <p className="text-text-secondary text-sm mb-1">Current Team</p>
-                <p className="text-h3 font-display font-bold">{profile.team}</p>
+                <p className="text-text-secondary text-sm mb-1">Teams</p>
+                <p className="text-h3 font-display font-bold">{teamMemberships.length}</p>
               </div>
               <div>
                 <p className="text-text-secondary text-sm mb-1">Member Since</p>
-                <p className="text-h3 font-display font-bold">{profile.joinDate}</p>
+                <p className="text-h3 font-display font-bold">{joinDate}</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Stats Cards */}
+        {/* Performance Stats */}
         <section className="px-6 py-12">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-h2 font-display font-bold mb-6">Performance</h2>
@@ -153,120 +303,126 @@ export default function ProfilePage() {
               {stats.map((stat, idx) => (
                 <Card key={idx}>
                   <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-text-secondary text-sm font-semibold">
-                      {stat.label}
-                    </h3>
+                    <h3 className="text-text-secondary text-sm font-semibold">{stat.label}</h3>
                     <stat.icon size={24} className="text-primary/50" />
                   </div>
-                  <p className="text-4xl font-mono font-bold text-primary">
-                    {stat.value}
-                  </p>
+                  <p className="text-4xl font-mono font-bold text-primary">{stat.value}</p>
                 </Card>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Achievements */}
-        <section className="px-6 py-12 border-t border-border">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-h2 font-display font-bold mb-6">Achievements</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {achievements.map((achievement, idx) => (
-                <Card key={idx} className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Trophy size={24} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-text-primary font-semibold">
-                      {achievement.title}
-                    </p>
-                    <p className="text-text-secondary text-sm">
-                      {achievement.description}
-                    </p>
-                  </div>
-                </Card>
-              ))}
+        {/* Game Stats */}
+        {leaderboard.length > 0 && (
+          <section className="px-6 py-12 border-t border-border">
+            <div className="max-w-7xl mx-auto">
+              <h2 className="text-h2 font-display font-bold mb-6">Stats by Game</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {leaderboard.map((entry) => (
+                  <Card key={entry.id} className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Gamepad2 size={24} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-text-primary font-semibold capitalize">{entry.game}</p>
+                      <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
+                        <span>{entry.wins}W / {entry.losses}L</span>
+                        <span>•</span>
+                        <span className="text-primary font-mono font-bold">
+                          {entry.points.toLocaleString()} pts
+                        </span>
+                      </div>
+                    </div>
+                    {entry.best_placement === 1 && (
+                      <Badge variant="gold"><Trophy size={10} /> 1st</Badge>
+                    )}
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* Active Teams */}
+        {/* Teams */}
         <section className="px-6 py-12 border-t border-border">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-h2 font-display font-bold mb-6">Your Teams</h2>
-            <div className="space-y-3">
-              {teams.map((team, idx) => (
-                <Card key={idx} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-text-primary font-semibold">{team.name}</p>
-                    <p className="text-text-secondary text-sm">
-                      {team.role} • Joined {team.joinDate}
-                    </p>
-                  </div>
-                  <Button variant="secondary" size="sm">
-                    View Team
-                  </Button>
-                </Card>
-              ))}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-h2 font-display font-bold">Your Teams</h2>
+              <Button variant="secondary" size="sm" onClick={() => router.push("/teams/create")}>
+                + New Team
+              </Button>
             </div>
-          </div>
-        </section>
-
-        {/* Match History */}
-        <section className="px-6 py-12 border-t border-border">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-h2 font-display font-bold mb-6">Recent Matches</h2>
-            <Card className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-4 px-4 text-text-secondary text-sm font-semibold">
-                      Opponent
-                    </th>
-                    <th className="text-left py-4 px-4 text-text-secondary text-sm font-semibold">
-                      Tournament
-                    </th>
-                    <th className="text-center py-4 px-4 text-text-secondary text-sm font-semibold">
-                      Score
-                    </th>
-                    <th className="text-center py-4 px-4 text-text-secondary text-sm font-semibold">
-                      Result
-                    </th>
-                    <th className="text-right py-4 px-4 text-text-secondary text-sm font-semibold">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchHistory.map((match) => (
-                    <tr
-                      key={match.id}
-                      className="border-b border-border last:border-0 hover:bg-background-elevated transition-colors"
+            {teamMemberships.length === 0 ? (
+              <Card className="text-center py-10">
+                <Users size={40} className="text-text-muted mx-auto mb-3 opacity-50" />
+                <p className="text-text-secondary mb-4">You haven&apos;t joined any teams yet.</p>
+                <Button variant="secondary" onClick={() => router.push("/teams")}>
+                  Browse Teams
+                </Button>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {teamMemberships.map((m, idx) => (
+                  <Card key={idx} className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-text-primary font-semibold">{m.teams.name}</p>
+                        {m.teams.tag && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary font-mono font-bold">
+                            [{m.teams.tag}]
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-text-secondary text-sm">
+                        {m.role} • {m.teams.primary_game} •{" "}
+                        Joined {new Date(m.joined_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => router.push(`/teams/${m.teams.id}`)}
                     >
-                      <td className="py-4 px-4 text-text-primary font-semibold">
-                        {match.opponent}
-                      </td>
-                      <td className="py-4 px-4 text-text-secondary">
-                        {match.tournament}
-                      </td>
-                      <td className="py-4 px-4 text-center font-mono font-bold text-text-primary">
-                        {match.score}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge
-                          variant={match.result === "WON" ? "live" : "cancelled"}
-                        >
-                          {match.result}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-right text-text-secondary text-sm">
-                        {new Date(match.date).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      View Team
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Account Info */}
+        <section className="px-6 py-12 border-t border-border">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-h2 font-display font-bold mb-6">Account</h2>
+            <Card className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-border/50">
+                <div>
+                  <p className="text-text-secondary text-sm">Email</p>
+                  <p className="text-text-primary font-medium">{user?.email}</p>
+                </div>
+                <Badge variant={user?.email_confirmed_at ? "live" : "upcoming"}>
+                  {user?.email_confirmed_at ? "Verified" : "Unverified"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between py-3 border-b border-border/50">
+                <div>
+                  <p className="text-text-secondary text-sm">Account ID</p>
+                  <p className="text-text-muted text-xs font-mono">{user?.id}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-text-secondary text-sm">Last Sign In</p>
+                  <p className="text-text-primary font-medium">
+                    {user?.last_sign_in_at
+                      ? new Date(user.last_sign_in_at).toLocaleString()
+                      : "—"}
+                  </p>
+                </div>
+              </div>
             </Card>
           </div>
         </section>

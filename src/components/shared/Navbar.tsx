@@ -1,8 +1,11 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Trophy, Users, BarChart2, Bell, Menu, X, Zap } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Trophy, Users, BarChart2, Bell, Menu, X, Zap, LogOut, UserCircle2 } from "lucide-react";
 import { useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/hooks/useUser";
+import { Avatar } from "@/components/shared";
 
 const navLinks = [
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
@@ -12,7 +15,21 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { user, profile, loading } = useUser();
+
+  const displayName =
+    profile?.username ?? profile?.full_name ?? user?.email?.split("@")[0] ?? "Player";
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -49,30 +66,64 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="hidden md:flex items-center gap-3">
-          <button
-            id="nav-notifications"
-            className="relative w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-primary/50 transition-all"
-          >
-            <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-          </button>
-          <Link
-            href="/profile"
-            id="nav-profile"
-            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-background-elevated border border-border/50 hover:border-primary/50 transition-all"
-          >
-            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold font-display">
-              P
-            </div>
-            <span className="text-sm font-medium text-text-primary">Player</span>
-          </Link>
-          <Link
-            href="/tournaments/create"
-            id="nav-create-tournament"
-            className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
-          >
-            + Create
-          </Link>
+          {!loading && (
+            <>
+              {user ? (
+                <>
+                  <button
+                    id="nav-notifications"
+                    className="relative w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-primary/50 transition-all"
+                  >
+                    <Bell size={16} />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                  </button>
+                  <Link
+                    href="/profile"
+                    id="nav-profile"
+                    className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-background-elevated border border-border/50 hover:border-primary/50 transition-all"
+                  >
+                    <Avatar name={displayName} size="sm" />
+                    <span className="text-sm font-medium text-text-primary max-w-[100px] truncate">
+                      {displayName}
+                    </span>
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                    title="Sign out"
+                    className="w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-status-cancelled hover:border-status-cancelled/50 transition-all"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                  <Link
+                    href="/tournaments/create"
+                    id="nav-create-tournament"
+                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                  >
+                    + Create
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary rounded-md hover:bg-background-elevated/50 transition-all"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                  >
+                    Join Now
+                  </Link>
+                </>
+              )}
+            </>
+          )}
+          {loading && (
+            <div className="w-24 h-8 skeleton rounded-md" />
+          )}
         </div>
 
         {/* Mobile menu toggle */}
@@ -107,10 +158,46 @@ export default function Navbar() {
             );
           })}
           <hr className="border-border/30 my-2" />
+          {user ? (
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-background-elevated/50 transition-all"
+              >
+                <UserCircle2 size={16} />
+                Profile
+              </Link>
+              <button
+                onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-status-cancelled hover:bg-background-elevated/50 transition-all"
+              >
+                <LogOut size={16} />
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center px-4 py-2 rounded-md border border-border text-text-secondary text-sm font-semibold"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold"
+              >
+                Join Now
+              </Link>
+            </>
+          )}
           <Link
             href="/tournaments/create"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold"
+            className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold mt-1"
           >
             + Create Tournament
           </Link>
