@@ -20,11 +20,23 @@ export function useUser(): AuthState {
     const supabase = createSupabaseBrowserClient();
 
     async function fetchProfile(uid: string) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("id,username,full_name,avatar_url,bio,role")
         .eq("id", uid)
-        .single();
+        .maybeSingle();
+      if (error) {
+        // If multiple rows exist for the same id, log and fallback to first item
+        console.error("Error fetching profile:", error);
+        // Try to select first matching row as a fallback
+        const { data: fallback } = await supabase
+          .from("profiles")
+          .select("id,username,full_name,avatar_url,bio,role")
+          .eq("id", uid)
+          .limit(1);
+        setProfile(Array.isArray(fallback) ? fallback[0] ?? null : fallback ?? null);
+        return;
+      }
       setProfile(data ?? null);
     }
 
