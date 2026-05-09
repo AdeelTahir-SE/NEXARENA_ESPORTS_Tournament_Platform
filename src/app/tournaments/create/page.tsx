@@ -28,10 +28,60 @@ export default function CreateTournamentPage() {
     }));
   };
 
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Creating tournament:", formData);
-    // Handle tournament creation
+    setError(null);
+    (async () => {
+      try {
+        setSubmitting(true);
+        // basic client-side validation
+        const allowedFormats = ["single_elimination", "double_elimination", "round_robin"];
+        if (!formData.game || formData.game.trim().length < 2) {
+          setError("Please select a valid game.");
+          return;
+        }
+        if (!allowedFormats.includes(formData.format)) {
+          setError("Please select a valid tournament format.");
+          return;
+        }
+
+        // prepare payload
+        const payload = {
+          name: formData.name.trim(),
+          game: formData.game,
+          format: formData.format,
+          maxTeams: parseInt(formData.maxTeams || "0", 10),
+          prizePool: parseFloat((formData.prizePool || "").replace(/[^0-9.-]+/g, "")) || 0,
+          entryFee: parseFloat((formData.entryFee || "").replace(/[^0-9.-]+/g, "")) || 0,
+          description: formData.description || undefined,
+        };
+
+        const res = await fetch("/api/tournaments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          console.error("Create tournament failed:", json);
+          setError(json.error || JSON.stringify(json));
+          return;
+        }
+
+        const id = json.data?.id;
+        if (id) window.location.href = `/tournaments/${id}`;
+        else window.location.href = "/tournaments";
+      } catch (err) {
+        console.error(err);
+        setError(String(err));
+      } finally {
+        setSubmitting(false);
+      }
+    })();
   };
 
   const games = [
@@ -44,10 +94,9 @@ export default function CreateTournamentPage() {
   ];
 
   const formats = [
-    { value: "single", label: "Single Elimination" },
-    { value: "double", label: "Double Elimination" },
-    { value: "roundrobin", label: "Round Robin" },
-    { value: "swiss", label: "Swiss System" },
+    { value: "single_elimination", label: "Single Elimination" },
+    { value: "double_elimination", label: "Double Elimination" },
+    { value: "round_robin", label: "Round Robin" },
   ];
 
   const maxTeamsOptions = [
@@ -171,10 +220,13 @@ export default function CreateTournamentPage() {
                       Cancel
                     </Button>
                   </Link>
-                  <button type="submit" className="flex-1">
-                    <Button fullWidth>Create Tournament</Button>
-                  </button>
+                  <div className="flex-1">
+                    <Button type="submit" fullWidth disabled={submitting}>
+                      {submitting ? "Creating..." : "Create Tournament"}
+                    </Button>
+                  </div>
                 </div>
+                {error && <div className="text-sm text-[#EF4444]">{error}</div>}
               </form>
             </Card>
           </div>

@@ -63,17 +63,31 @@ export default function ProfilePage() {
     setError("");
 
     try {
-      // Fetch profile
+      // Fetch profile (use maybeSingle to avoid errors when duplicates exist)
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id,username,full_name,avatar_url,bio,role")
         .eq("id", uid)
-        .single();
+        .maybeSingle();
 
-      if (profileError) throw new Error(profileError.message);
-      setProfile(profileData);
-      setEditName(profileData?.full_name ?? "");
-      setEditBio(profileData?.bio ?? "");
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        // Fallback: try to fetch the first matching row
+        const { data: fallback } = await supabase
+          .from("profiles")
+          .select("id,username,full_name,avatar_url,bio,role")
+          .eq("id", uid)
+          .limit(1);
+        const useProfile = Array.isArray(fallback) ? fallback[0] ?? null : fallback ?? null;
+        if (!useProfile) throw new Error(profileError.message);
+        setProfile(useProfile as Profile | null);
+        setEditName((useProfile as Profile)?.full_name ?? "");
+        setEditBio((useProfile as Profile)?.bio ?? "");
+      } else {
+        setProfile(profileData as Profile | null);
+        setEditName((profileData as Profile)?.full_name ?? "");
+        setEditBio((profileData as Profile)?.bio ?? "");
+      }
 
       // Fetch leaderboard stats
       const { data: lbData } = await supabase
