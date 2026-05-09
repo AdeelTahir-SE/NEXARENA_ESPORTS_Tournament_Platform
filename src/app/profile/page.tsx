@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import {
   Settings,
   Trophy,
+  Swords,
   BarChart2,
   Users,
   Shield,
@@ -84,8 +85,6 @@ export default function ProfilePage() {
     { name: "Eternal Knights", role: "Captain", joinDate: "Jan 2024" },
     { name: "Fire Masters", role: "Member", joinDate: "Mar 2024" },
   ];
-
-  const Swords = Trophy; // Placeholder
 
   return (
     <>
