@@ -1,5 +1,11 @@
+-- supabase/queries.sql
+-- DDL to create types, tables, indexes, triggers, RLS policies
+-- Also includes sample INSERT/SELECT/UPDATE queries for seeding and testing
+
+/* Extensions */
 create extension if not exists "pgcrypto";
 
+/* Enums */
 do $$ begin
   create type public.user_role as enum ('player', 'organizer', 'admin');
 exception
@@ -30,6 +36,7 @@ exception
   when duplicate_object then null;
 end $$;
 
+/* Tables */
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text unique,
@@ -143,12 +150,14 @@ create table if not exists public.leaderboard_entries (
   unique (user_id, game)
 );
 
+/* Indexes */
 create index if not exists idx_teams_owner_id on public.teams (owner_id);
 create index if not exists idx_tournaments_organizer_id on public.tournaments (organizer_id);
 create index if not exists idx_tournament_participants_tournament_id on public.tournament_participants (tournament_id);
 create index if not exists idx_matches_tournament_id on public.matches (tournament_id);
 create index if not exists idx_leaderboard_entries_game_points on public.leaderboard_entries (game, points desc);
 
+/* Trigger to update updated_at */
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -184,6 +193,7 @@ create trigger set_leaderboard_entries_updated_at
 before update on public.leaderboard_entries
 for each row execute function public.set_updated_at();
 
+/* Row level security and policies (Supabase auth functions) */
 alter table public.profiles enable row level security;
 alter table public.teams enable row level security;
 alter table public.team_members enable row level security;
@@ -337,3 +347,46 @@ create policy "Authenticated read leaderboard"
 on public.leaderboard_entries
 for select
 using (auth.role() = 'authenticated');
+
+/* ----------------- */
+/* Sample seed & queries */
+/* ----------------- */
+
+-- Insert a profile (server-side or with service role key unless auth user exists)
+-- Replace the uuid with a real auth.users id if using Supabase Auth
+-- Example (admin):
+-- INSERT INTO public.profiles (id, username, full_name, role)
+-- VALUES ('11111111-1111-1111-1111-111111111111','player1','Player One','player');
+
+-- Create a team (owner must be an existing profile id)
+-- INSERT INTO public.teams (owner_id, name, slug, tag, primary_game)
+-- VALUES ('11111111-1111-1111-1111-111111111111','Team Alpha','team-alpha','ALP','Valorant');
+
+-- Register a participant (team or user)
+-- INSERT INTO public.tournament_participants (tournament_id, team_id, seed)
+-- VALUES ('22222222-2222-2222-2222-222222222222','33333333-3333-3333-3333-333333333333',1);
+
+-- Basic selects
+-- SELECT * FROM public.profiles ORDER BY xp DESC LIMIT 10;
+-- SELECT * FROM public.teams WHERE primary_game = 'Valorant' ORDER BY rank DESC;
+
+-- Create a tournament
+-- INSERT INTO public.tournaments (organizer_id, name, slug, game, format, status, max_teams)
+-- VALUES ('11111111-1111-1111-1111-111111111111','Cup 1','cup-1','Valorant','single_elimination','upcoming',16);
+
+-- Create a match
+-- INSERT INTO public.matches (tournament_id, round_number, match_number, team_a_id, team_b_id, scheduled_at)
+-- VALUES ('22222222-2222-2222-2222-222222222222',1,1,'33333333-3333-3333-3333-333333333333','44444444-4444-4444-4444-444444444444', now() + interval '1 day');
+
+-- Submit a match result (use authenticated user id as submitted_by)
+-- INSERT INTO public.match_results (match_id, submitted_by, team_a_score, team_b_score, status)
+-- VALUES ('55555555-5555-5555-5555-555555555555','11111111-1111-1111-1111-111111111111',2,1,'pending');
+
+-- Update leaderboard after a final result (example)
+-- UPDATE public.leaderboard_entries SET points = points + 100, wins = wins + 1, tournaments_played = tournaments_played + 1 WHERE user_id = '11111111-1111-1111-1111-111111111111' AND game = 'Valorant';
+
+-- Admin: disable RLS temporarily (superuser or service role)
+-- ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+
+-- Admin: enable RLS
+-- ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
