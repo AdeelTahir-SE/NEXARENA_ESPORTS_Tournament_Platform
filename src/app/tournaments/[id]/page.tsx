@@ -88,7 +88,17 @@ export default function TournamentDetailPage({
                   <h1 className="text-h1 font-display font-bold">
                     {tournament.name}
                   </h1>
-                  <Badge variant={tournament.status}>
+                  <Badge
+                    variant={
+                      tournament.status === "live"
+                        ? "live"
+                        : tournament.status === "upcoming"
+                        ? "upcoming"
+                        : tournament.status === "cancelled"
+                        ? "cancelled"
+                        : "completed"
+                    }
+                  >
                     {tournament.status === "live"
                       ? "LIVE"
                       : tournament.status === "upcoming"

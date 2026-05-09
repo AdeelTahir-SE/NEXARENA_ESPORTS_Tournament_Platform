@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Mail, Lock, LogIn, ArrowRight } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -13,7 +13,6 @@ import { loginSchema } from "@/lib/validators/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState<Record<string, string[]>>({});
@@ -44,7 +43,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(searchParams.get("next") ?? "/profile");
+    const nextPath = new URLSearchParams(window.location.search).get("next") ?? "/profile";
+    router.push(nextPath);
     router.refresh();
   }
 
