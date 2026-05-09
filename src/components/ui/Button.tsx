@@ -26,11 +26,11 @@ export default function Button({
 
   const variants = {
     primary:
-      "bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)] hover:shadow-[0_0_20px_rgba(124,58,237,0.6)]",
+      "bg-primary hover:bg-primary-hover text-white shadow-[0_0_12px_rgba(124,58,237,0.4)] hover:shadow-[0_0_20px_rgba(124,58,237,0.6)]",
     secondary:
-      "bg-[#12121A] border border-[#2A2A3D] hover:border-[#4A4A6A] text-[#A78BFA] hover:text-[#F1F0FF] hover:bg-[#1A1A26]",
+      "bg-background-elevated border border-border/80 hover:border-primary/50 text-text-secondary hover:text-text-primary hover:bg-background-elevated/80",
     ghost:
-      "bg-transparent text-[#9B99B8] hover:text-[#F1F0FF] hover:bg-[#1A1A26]",
+      "bg-transparent text-text-secondary hover:text-text-primary hover:bg-background-surface/50",
     danger:
       "bg-[#EF4444] hover:bg-[#DC2626] text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]",
   };

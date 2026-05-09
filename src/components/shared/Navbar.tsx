@@ -15,15 +15,15 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="glass sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-glow-primary group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_12px_rgba(124,58,237,0.4)] group-hover:shadow-[0_0_16px_rgba(124,58,237,0.6)] transition-all">
             <Zap size={18} className="text-white" fill="white" />
           </div>
-          <span className="font-display text-[22px] font-bold tracking-wider text-[#F1F0FF]">
-            NEX<span className="text-[#7C3AED]">ARENA</span>
+          <span className="font-display text-[22px] font-bold tracking-wider text-text-primary">
+            NEX<span className="text-primary">ARENA</span>
           </span>
         </Link>
 
@@ -37,8 +37,8 @@ export default function Navbar() {
                 href={href}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-150 ${
                   active
-                    ? "text-[#7C3AED] bg-[#7C3AED]/10"
-                    : "text-[#9B99B8] hover:text-[#F1F0FF] hover:bg-[#1A1A26]"
+                    ? "text-primary bg-primary/10"
+                    : "text-text-secondary hover:text-text-primary hover:bg-background-elevated/50"
                 }`}
               >
                 {label}
@@ -51,26 +51,25 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <button
             id="nav-notifications"
-            className="relative w-9 h-9 rounded-lg bg-[#1A1A26] border border-[#2A2A3D] flex items-center justify-center text-[#9B99B8] hover:text-[#F1F0FF] hover:border-[#4A4A6A] transition-all"
+            className="relative w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-primary/50 transition-all"
           >
             <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#7C3AED]" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
           </button>
           <Link
             href="/profile"
             id="nav-profile"
-            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-[#1A1A26] border border-[#2A2A3D] hover:border-[#4A4A6A] transition-all"
+            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-background-elevated border border-border/50 hover:border-primary/50 transition-all"
           >
-            <div className="w-7 h-7 rounded-full bg-[#7C3AED]/20 flex items-center justify-center text-[#A78BFA] text-xs font-bold font-display">
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold font-display">
               P
             </div>
-            <span className="text-sm font-medium text-[#F1F0FF]">Player</span>
+            <span className="text-sm font-medium text-text-primary">Player</span>
           </Link>
           <Link
             href="/tournaments/create"
             id="nav-create-tournament"
-            className="px-4 py-2 rounded-md bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold transition-all duration-150"
-            style={{ boxShadow: "0 0 12px rgba(124,58,237,0.4)" }}
+            className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
           >
             + Create
           </Link>
@@ -78,7 +77,7 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden w-9 h-9 rounded-lg bg-[#1A1A26] border border-[#2A2A3D] flex items-center justify-center text-[#9B99B8]"
+          className="md:hidden w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -88,7 +87,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#2A2A3D] bg-[#12121A] px-6 py-4 flex flex-col gap-1 animate-slide-up">
+        <div className="md:hidden border-t border-border/50 bg-background-surface/50 px-6 py-4 flex flex-col gap-1 animate-slide-up backdrop-blur-sm">
           {navLinks.map(({ href, label, icon: Icon }) => {
             const active = pathname?.startsWith(href);
             return (
@@ -98,8 +97,8 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all ${
                   active
-                    ? "text-[#7C3AED] bg-[#7C3AED]/10"
-                    : "text-[#9B99B8] hover:text-[#F1F0FF] hover:bg-[#1A1A26]"
+                    ? "text-primary bg-primary/10"
+                    : "text-text-secondary hover:text-text-primary hover:bg-background-elevated/50"
                 }`}
               >
                 <Icon size={16} />
@@ -107,11 +106,11 @@ export default function Navbar() {
               </Link>
             );
           })}
-          <hr className="border-[#2A2A3D] my-2" />
+          <hr className="border-border/30 my-2" />
           <Link
             href="/tournaments/create"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center px-4 py-2 rounded-md bg-[#7C3AED] text-white text-sm font-semibold"
+            className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold"
           >
             + Create Tournament
           </Link>

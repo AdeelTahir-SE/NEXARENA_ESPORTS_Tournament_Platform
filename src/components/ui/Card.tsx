@@ -20,9 +20,9 @@ export default function Card({
       id={id}
       className={`rounded-xl p-5 border transition-all duration-200 ${
         elevated
-          ? "bg-[#1A1A26] border-[#2A2A3D]"
-          : "bg-[#12121A] border-[#2A2A3D]"
-      } ${hover ? "card-hover cursor-pointer" : ""} ${className}`}
+          ? "bg-background-elevated border-border/80"
+          : "bg-background-surface border-border/50"
+      } ${hover ? "hover:border-primary/50 hover:shadow-[0_0_24px_rgba(124,58,237,0.15)] hover:-translate-y-0.5 cursor-pointer" : ""} ${className}`}
     >
       {children}
     </div>
