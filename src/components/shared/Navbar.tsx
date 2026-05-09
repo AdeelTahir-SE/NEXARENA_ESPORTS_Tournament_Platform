@@ -56,7 +56,7 @@ export default function Navbar() {
                   active
                     ? "text-primary bg-primary/10"
                     : "text-text-secondary hover:text-text-primary hover:bg-background-elevated/50"
-                }`}
+                } cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2`}
               >
                 {label}
               </Link>
@@ -72,7 +72,8 @@ export default function Navbar() {
                 <>
                   <button
                     id="nav-notifications"
-                    className="relative w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-primary/50 transition-all"
+                    className="relative w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-primary/50 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+                    aria-label="Notifications"
                   >
                     <Bell size={16} />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
@@ -80,7 +81,7 @@ export default function Navbar() {
                   <Link
                     href="/profile"
                     id="nav-profile"
-                    className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-background-elevated border border-border/50 hover:border-primary/50 transition-all"
+                    className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-lg bg-background-elevated border border-border/50 hover:border-primary/50 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
                   >
                     <Avatar name={displayName} size="sm" />
                     <span className="text-sm font-medium text-text-primary max-w-[100px] truncate">
@@ -91,14 +92,15 @@ export default function Navbar() {
                     onClick={handleSignOut}
                     disabled={signingOut}
                     title="Sign out"
-                    className="w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-status-cancelled hover:border-status-cancelled/50 transition-all"
+                    className="w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary hover:text-status-cancelled hover:border-status-cancelled/50 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+                    aria-label="Sign out"
                   >
                     <LogOut size={16} />
                   </button>
                   <Link
                     href="/tournaments/create"
                     id="nav-create-tournament"
-                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
                   >
                     + Create
                   </Link>
@@ -107,13 +109,13 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/login"
-                    className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary rounded-md hover:bg-background-elevated/50 transition-all"
+                    className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary rounded-md hover:bg-background-elevated/50 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/register"
-                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+                    className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all duration-150 shadow-[0_0_12px_rgba(124,58,237,0.4)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
                   >
                     Join Now
                   </Link>
@@ -128,7 +130,7 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary"
+          className="md:hidden w-9 h-9 rounded-lg bg-background-elevated border border-border/50 flex items-center justify-center text-text-secondary cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -150,7 +152,7 @@ export default function Navbar() {
                   active
                     ? "text-primary bg-primary/10"
                     : "text-text-secondary hover:text-text-primary hover:bg-background-elevated/50"
-                }`}
+                } cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2`}
               >
                 <Icon size={16} />
                 {label}
@@ -170,7 +172,7 @@ export default function Navbar() {
               </Link>
               <button
                 onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-status-cancelled hover:bg-background-elevated/50 transition-all"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-status-cancelled hover:bg-background-elevated/50 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
               >
                 <LogOut size={16} />
                 Sign Out
@@ -181,14 +183,14 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center px-4 py-2 rounded-md border border-border text-text-secondary text-sm font-semibold"
+                className="flex items-center justify-center px-4 py-2 rounded-md border border-border text-text-secondary text-sm font-semibold cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold"
+                className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
               >
                 Join Now
               </Link>
@@ -197,7 +199,7 @@ export default function Navbar() {
           <Link
             href="/tournaments/create"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold mt-1"
+            className="flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white text-sm font-semibold mt-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
           >
             + Create Tournament
           </Link>
