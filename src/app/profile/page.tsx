@@ -55,6 +55,7 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
   const fetchProfileData = useCallback(async (uid: string) => {
@@ -125,15 +126,26 @@ export default function ProfilePage() {
   async function handleSaveProfile() {
     if (!user) return;
     setSaving(true);
+    setSaveError("");
     const supabase = createSupabaseBrowserClient();
-    const { error: updateError } = await supabase
+    const { data, error: updateError } = await supabase
       .from("profiles")
-      .update({ full_name: editName.trim(), bio: editBio.trim() })
-      .eq("id", user.id);
+      .upsert(
+        {
+          id: user.id,
+          full_name: editName.trim() || null,
+          bio: editBio.trim() || null,
+        },
+        { onConflict: "id" }
+      )
+      .select("id,username,full_name,avatar_url,bio,role")
+      .single();
 
     if (!updateError) {
-      setProfile((prev) => prev ? { ...prev, full_name: editName.trim(), bio: editBio.trim() } : prev);
+      setProfile((prev) => (data ? { ...(prev ?? {}), ...data } : prev));
       setIsEditing(false);
+    } else {
+      setSaveError(updateError.message);
     }
     setSaving(false);
   }
@@ -283,6 +295,7 @@ export default function ProfilePage() {
                   <LogOut size={16} /> {signingOut ? "Signing out..." : "Sign Out"}
                 </Button>
               </div>
+              {saveError && <p className="mt-3 text-sm text-status-cancelled">{saveError}</p>}
             </div>
 
             {/* Key Stats */}
@@ -335,7 +348,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {leaderboard.map((entry) => (
                   <Card key={entry.id} className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
                       <Gamepad2 size={24} className="text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">

@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useState } from "react";
 import { Users } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +17,9 @@ export default function CreateTeamPage() {
     description: "",
     maxMembers: "5",
   });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -31,8 +35,75 @@ export default function CreateTeamPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Creating team:", formData);
-    // Handle team creation
+    setError(null);
+
+    (async () => {
+      try {
+        setSubmitting(true);
+
+        if (!formData.name.trim() || formData.name.trim().length < 2) {
+          setError("Please enter a valid team name.");
+          return;
+        }
+
+        if (!formData.game.trim() || formData.game.trim().length < 2) {
+          setError("Please select a valid primary game.");
+          return;
+        }
+
+        const tag =
+          formData.name
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((word) => word[0])
+            .join("")
+            .replace(/[^a-z0-9]/gi, "")
+            .toUpperCase()
+            .slice(0, 8) ||
+          formData.name.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8);
+
+        if (tag.length < 2) {
+          setError("Team name must produce a valid tag.");
+          return;
+        }
+
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+        const res = await fetch("/api/teams", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            tag,
+            primaryGame: formData.game,
+            description: formData.description || undefined,
+          }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          setError(json.error || JSON.stringify(json));
+          return;
+        }
+
+        const id = json.data?.id;
+        if (id) {
+          window.location.href = `/teams/${id}`;
+        } else {
+          window.location.href = "/teams";
+        }
+      } catch (submitError) {
+        setError(submitError instanceof Error ? submitError.message : String(submitError));
+      } finally {
+        setSubmitting(false);
+      }
+    })();
   };
 
   const games = [
@@ -144,10 +215,11 @@ export default function CreateTeamPage() {
                       Cancel
                     </Button>
                   </Link>
-                  <button type="submit" className="flex-1">
-                    <Button fullWidth>Create Team</Button>
-                  </button>
+                  <Button type="submit" fullWidth disabled={submitting}>
+                    {submitting ? "Creating..." : "Create Team"}
+                  </Button>
                 </div>
+                {error && <div className="text-sm text-cancelled">{error}</div>}
               </form>
             </Card>
           </div>

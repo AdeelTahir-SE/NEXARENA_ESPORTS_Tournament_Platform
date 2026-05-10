@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export async function createSupabaseServerClient() {
@@ -24,4 +25,29 @@ export async function createSupabaseServerClient() {
       },
     }
   );
+}
+
+export async function createSupabaseRequestClient(request?: Request) {
+  const bearerToken = request?.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  if (bearerToken) {
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+          },
+        },
+      }
+    );
+  }
+
+  return createSupabaseServerClient();
 }

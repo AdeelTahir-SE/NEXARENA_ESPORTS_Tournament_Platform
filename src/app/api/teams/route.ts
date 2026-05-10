@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseRequestClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import { teamCreateSchema } from "@/lib/validators/team";
 
 export async function GET() {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ errors: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseRequestClient(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -52,6 +52,22 @@ export default function RegisterPage() {
       return;
     }
 
+    if (data.session?.user) {
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
+          id: data.session.user.id,
+          full_name: parsed.data.fullName,
+        },
+        { onConflict: "id" }
+      );
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
+    }
+
     // If email confirmation is required, show message; otherwise redirect
     if (data.session) {
       router.push("/profile");
@@ -139,7 +155,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-[34px] text-text-muted hover:text-text-secondary transition-colors"
+                className="absolute right-3 top-8.5 text-text-muted hover:text-text-secondary transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}

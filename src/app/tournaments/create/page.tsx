@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useState } from "react";
 import { Zap } from "lucide-react";
 import Link from "next/link";
@@ -59,9 +60,17 @@ export default function CreateTournamentPage() {
           description: formData.description || undefined,
         };
 
+        // include current access token as Bearer so server can validate if cookies aren't present
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = (sessionData as any)?.session?.access_token;
+
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
         const res = await fetch("/api/tournaments", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(payload),
         });
 
@@ -226,7 +235,7 @@ export default function CreateTournamentPage() {
                     </Button>
                   </div>
                 </div>
-                {error && <div className="text-sm text-[#EF4444]">{error}</div>}
+                {error && <div className="text-sm text-cancelled">{error}</div>}
               </form>
             </Card>
           </div>
